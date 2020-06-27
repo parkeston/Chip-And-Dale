@@ -97,7 +97,7 @@ public class PhysicsObject : MonoBehaviour
                     }
                 }
 
-                float projection = Vector2.Dot(velocity, currentNormal); //todo: ???
+                float projection = Vector2.Dot(velocity, currentNormal);
                 if (projection < 0)
                     velocity -= projection * currentNormal;
 
@@ -107,6 +107,6 @@ public class PhysicsObject : MonoBehaviour
         }
 
         rigidbody2D.position += movement.normalized * movementDistance;
-        //rigidbody2D.MovePosition(rigidbody2D.position+movement.normalized*movementDistance);//works once for frame??? todo: fix
+        //rigidbody2D.MovePosition(rigidbody2D.position+movement.normalized*movementDistance);
     }
 }
