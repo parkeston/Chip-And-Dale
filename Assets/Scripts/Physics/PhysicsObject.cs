@@ -12,22 +12,23 @@ public class PhysicsObject : MonoBehaviour
     [SerializeField] private float minGroundYNormal; //min ground/slope supported angle
     
     private new Rigidbody2D rigidbody2D;
-    protected Vector2 velocity;
+    private Vector2 velocity;
     
     private ContactFilter2D contactFilter;
-    private RaycastHit2D[] hitBuffer = new RaycastHit2D[16];
-    private List<RaycastHit2D> hitBufferList = new List<RaycastHit2D>();
+    private readonly RaycastHit2D[] hitBuffer = new RaycastHit2D[16];
+    private readonly List<RaycastHit2D> hitBufferList = new List<RaycastHit2D>();
 
-    protected bool isGrounded;
+    public bool IsGrounded { get; private set; }
     private Vector2 groundNormal;
-
-    protected Vector2 targetVelocity;
-
-    protected float GravityModifier => gravityModifier;
+    
+    public float GravityModifier => gravityModifier;
 
     private void Awake()
     {
         rigidbody2D = GetComponent<Rigidbody2D>();
+        rigidbody2D.isKinematic = true;
+        rigidbody2D.useFullKinematicContacts = true;
+        rigidbody2D.simulated = true;
 
         //setting layer collision mask for custom collision detection based on project physics settings
         contactFilter.useTriggers = false;
@@ -35,21 +36,28 @@ public class PhysicsObject : MonoBehaviour
         contactFilter.useLayerMask = true;
     }
 
-    private void Update()
+    private void OnEnable()
     {
-        targetVelocity=Vector2.zero;
-        ComputeVelocity();
+        velocity = Vector2.zero;
+        IsGrounded = false;
     }
 
-    protected virtual void ComputeVelocity(){}
+    public void SetVelocity(float horizontal)
+    {
+        velocity.x = horizontal;
+    }
+
+    public void SetVelocity(float horizontal, float vertical)
+    {
+        velocity.x = horizontal;
+        velocity.y = vertical;
+    }
 
     private void FixedUpdate()
     {
+        IsGrounded = false;
+
         velocity += Physics2D.gravity * (gravityModifier * Time.fixedDeltaTime); //applying gravity acceleration (v = v0 + at)
-        velocity.x = targetVelocity.x;
-        
-        isGrounded = false;
-        
         Vector2 deltaPosition = velocity * Time.fixedDeltaTime; //delta position = v0t+at^2/2 = (v0 +at/2)*t = vt; - removing division by 2
         
         //horizontal movement
@@ -58,8 +66,7 @@ public class PhysicsObject : MonoBehaviour
         Move(movement,false);
         
         //vertical movement
-        movement = Vector2.up*deltaPosition.y; //vertical movement
-        //todo: move only by y for gravity???
+        movement = Vector2.up*deltaPosition.y;
         //todo: do not apply gravity if grounded???
         Move(movement,true);
     }
@@ -69,6 +76,7 @@ public class PhysicsObject : MonoBehaviour
         float movementDistance = movement.magnitude;
         if (movementDistance > minimumMovementDistance)
         {
+            
             int hitCount = rigidbody2D.Cast(movement, contactFilter, hitBuffer, movementDistance + shellRadius);
             hitBufferList.Clear();
             for (int i = 0; i < hitCount; i++)
@@ -81,7 +89,7 @@ public class PhysicsObject : MonoBehaviour
                 Vector2 currentNormal = hitBufferList[i].normal;
                 if (currentNormal.y > minGroundYNormal) //if current object has ground angle
                 {
-                    isGrounded = true;
+                    IsGrounded = true;
                     if (isMovingVertically)
                     {
                         groundNormal = currentNormal;
